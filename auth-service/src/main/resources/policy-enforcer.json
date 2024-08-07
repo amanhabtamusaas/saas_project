@@ -1,0 +1,18 @@
+{
+  "realm": "insa-realm",
+  "auth-server-url": "http://localhost:8080",
+  "resource": "saas-hrms-client",
+  "credentials": {
+    "secret": "M6Fc3ogo5m9NUOzbwvHffotonOCxPa7l"
+  },
+  "paths": [
+    {
+      "path": "/swagger-ui/*",
+      "enforcement-mode": "DISABLED"
+    },
+    {
+      "path": "/v3/api-docs/*",
+      "enforcement-mode": "DISABLED"
+    }
+  ]
+}

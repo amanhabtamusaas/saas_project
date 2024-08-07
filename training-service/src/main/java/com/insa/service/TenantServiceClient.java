@@ -1,0 +1,50 @@
+package com.insa.service;
+
+import com.insa.dto.apiDto.*;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+@FeignClient(name = "TENANT-SERVICE", url = "${tenant-service.base-url}")
+public interface TenantServiceClient {
+
+    @GetMapping("/api/tenants/get/{id}")
+    public TenantDto getTenantById(@PathVariable Long id);
+
+    @GetMapping("/api/locations/{tenant-id}/get/{id}")
+    public LocationDto getLocationById(
+            @PathVariable Long id,
+            @PathVariable("tenant-id") Long tenantId);
+
+    @GetMapping("/api/departments/{tenant-id}/get/{id}")
+    public DepartmentDto getDepartmentById(
+            @PathVariable Long id,
+            @PathVariable("tenant-id") Long tenantId);
+
+    @GetMapping("/api/education-levels/{tenant-id}/get/{id}")
+    public EducationLevelDto getEducationLevelById(
+            @PathVariable Long id,
+            @PathVariable("tenant-id") Long tenantId);
+
+    @GetMapping("/api/field-of-studies/{tenant-id}/get/{id}")
+    public FieldOfStudyDto getFieldOfStudyById(
+            @PathVariable Long id,
+            @PathVariable("tenant-id") Long tenantId);
+
+    @GetMapping("/api/qualifications/{tenantId}/get/{id}")
+    public QualificationDto getQualificationById(
+            @PathVariable Long id,
+            @PathVariable("tenantId") Long tenantId);
+//
+//    @GetMapping("/api/job-registrations/{tenant-id}/get/{id}")
+//    public JobDto getJobById(
+//            @PathVariable Long id,
+//            @PathVariable("tenant-id") Long tenantId);
+//
+//    @GetMapping("/api/pay-grades/{tenant-id}/get/{id}")
+//    public PayGradeDto getPayGradeById(
+//            @PathVariable Long id,
+//            @PathVariable("tenant-id") Long tenantId);
+}
+

@@ -1,0 +1,145 @@
+server:
+  port: ${PORT:8000}
+
+spring:
+  application:
+    name: GATEWAY-SERVICE
+  cloud:
+    gateway:
+      routes:
+        ## Employee-Service Route
+        - id: EMPLOYEE-SERVICE
+          uri: lb://EMPLOYEE-SERVICE
+          predicates:
+            - Path=/api/employees/**,
+              /api/addresses/**,
+              /api/educations/**,
+              /api/experiences/**,
+              /api/families/**,
+              /api/languages/**,
+              /api/references/**,
+              /api/skills/**,
+              /api/trainings/**,
+              /api/language-names/**,
+              /api/title-names/**
+        ## Tenant-Service Route
+        - id: TENANT-SERVICE
+          uri: lb://TENANT-SERVICE
+          predicates:
+            - Path=/api/tenants/**,
+              /api/addresses/**,
+              /api/departments/**,
+              /api/department-types/**,
+              /api/job-registrations/**,
+              /api/pay-grades/**,
+              /api/staff-plans/**,
+              /api/work-units/**,
+              /api/qualifications/**,
+              /api/locations/**,
+              /api/job-grades/**,
+              /api/job-categories/**,
+              /api/field-of-studies/**,
+              /api/education-levels/**,
+              /api/Location-types/**,
+        ## Recruitment-Service Route
+        - id: RECRUITMENT-SERVICE
+          uri: lb://RECRUITMENT-SERVICE
+          predicates:
+            - Path=/api/recruitments/**,
+              /api/advertisements/**,
+              /api/applicants/**,
+              /api/applicant-educations/**,
+              /api/applicant-experiences/**,
+              /api/applicant-languages/**,
+              /api/applicant-references/**,
+              /api/shortlist-criteria/**,
+              /api/applicant-trainings/**,
+              /api/exam-result/**,
+              /api/assessment-weights/**,
+              /api/media-types/**
+        ## Training-Service Route
+        - id: TRAINING-SERVICE
+          uri: lb://TRAINING-SERVICE
+          predicates:
+            - Path=/api/trainings/**,
+              /api/training-participants/**,
+              /api/annual-training-plans/**,
+              /api/course-categories/**,
+              /api/internship-students/**,
+              /api/internship-payments/**,
+              /api/training-courses/**,
+              /api/training-institutions/**,
+              /api/trainee-results/**,
+              /api/universities/**,
+              /api/pre-service-trainees/**,
+              /api/pre-service-courses/**,
+              /api/course-types/**,
+              /api/education-opportunities/**,
+              /api/documents/**,
+
+        ## Leave-Service Route
+        - id: LEAVE-SERVICE
+          uri: lb://LEAVE-SERVICE
+          predicates:
+            - Path=/api/budget-years/**,
+              /api/holidays/**,
+              /api/holiday-managements/**,
+              /api/leave-approve-departments/**,
+              /api/leave-approve-hr/**,
+              /api/leave-balance/**,
+              /api/leave-requests/**,
+              /api/leave-schedules/**,
+              /api/leave-settings/**,
+              /api/leave-types/**
+        ## Discovery Service Route
+        - id: DISCOVERY-SERVER
+          uri: http://${DISCOVERY_SERVER_HOST:localhost}:${DISCOVERY_SERVER_PORT:8060}
+          predicates:
+            - Path=/eureka
+          filters :
+            - SetPath=/
+        ## Discovery Service Static Resources Route
+        - id : DISCOVERY-SERVER-STATIC
+          uri : http://${DISCOVERY_SERVER_HOST:localhost}:${DISCOVERY_SERVER_PORT:8060}
+          predicates :
+            - Path=/eureka/**
+
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          issuer-uri: http://localhost:8080/realms/insa
+#          jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs
+
+logging:
+  level:
+    root : info
+    org.springframework.cloud.gateway.route.RouteDefinitionLocator: info
+    org.springframework.cloud.gateway : trace
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    serviceUrl:
+      defaultZone: http://${DISCOVERY_SERVER_HOST:localhost}:${DISCOVERY_SERVER_PORT:8060}/eureka/
+
+#related to Spring Boot's actuator and management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

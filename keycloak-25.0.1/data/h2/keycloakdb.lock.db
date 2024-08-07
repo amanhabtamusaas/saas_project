@@ -1,0 +1,6 @@
+#FileLock
+#Wed Jul 17 09:48:15 MSK 2024
+hostName=172.20.85.36
+id=190bf72e12e19c0522721ea634e9cd31dfe3ddee6a6
+method=file
+server=172.20.85.36\:3214

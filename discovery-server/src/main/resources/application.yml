@@ -1,0 +1,26 @@
+server:
+  port: ${PORT:8060}
+
+spring :
+  application :
+    name : DISCOVERY-SERVER
+
+eureka:
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    preferIpAddress: true
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+
+#related to Spring Boot's actuator and management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
