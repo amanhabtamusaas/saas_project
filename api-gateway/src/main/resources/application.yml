@@ -1,30 +1,22 @@
 server:
-  port: ${PORT:8000}
+  port: 8000
 
 spring:
   application:
     name: GATEWAY-SERVICE
+  main:
+    allow-bean-definition-overriding: true
+    web-application-type: reactive
+
+  config:
+    import: configserver:${CONFIG_SERVER_URL:http://localhost:8282}
+
   cloud:
     gateway:
       routes:
-        ## Employee-Service Route
-        - id: EMPLOYEE-SERVICE
-          uri: lb://EMPLOYEE-SERVICE
-          predicates:
-            - Path=/api/employees/**,
-              /api/addresses/**,
-              /api/educations/**,
-              /api/experiences/**,
-              /api/families/**,
-              /api/languages/**,
-              /api/references/**,
-              /api/skills/**,
-              /api/trainings/**,
-              /api/language-names/**,
-              /api/title-names/**
-        ## Tenant-Service Route
-        - id: TENANT-SERVICE
-          uri: lb://TENANT-SERVICE
+        ## Organization-Service Route
+        - id: ORGANIZATION-SERVICE
+          uri: lb://ORGANIZATION-SERVICE
           predicates:
             - Path=/api/tenants/**,
               /api/addresses/**,
@@ -40,7 +32,22 @@ spring:
               /api/job-categories/**,
               /api/field-of-studies/**,
               /api/education-levels/**,
-              /api/Location-types/**,
+              /api/Location-types/**
+        ## Employee-Service Route
+        - id: EMPLOYEE-SERVICE
+          uri: lb://EMPLOYEE-SERVICE
+          predicates:
+            - Path=/api/employees/**,
+              /api/addresses/**,
+              /api/educations/**,
+              /api/experiences/**,
+              /api/families/**,
+              /api/languages/**,
+              /api/references/**,
+              /api/skills/**,
+              /api/trainings/**,
+              /api/language-names/**,
+              /api/title-names/**
         ## Recruitment-Service Route
         - id: RECRUITMENT-SERVICE
           uri: lb://RECRUITMENT-SERVICE
@@ -75,7 +82,7 @@ spring:
               /api/pre-service-courses/**,
               /api/course-types/**,
               /api/education-opportunities/**,
-              /api/documents/**,
+              /api/documents/**
 
         ## Leave-Service Route
         - id: LEAVE-SERVICE
@@ -91,16 +98,21 @@ spring:
               /api/leave-schedules/**,
               /api/leave-settings/**,
               /api/leave-types/**
+        ## Auth-Service Route
+        - id: AUTH-SERVICE
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/api/keycloak/**
         ## Discovery Service Route
         - id: DISCOVERY-SERVER
-          uri: http://${DISCOVERY_SERVER_HOST:localhost}:${DISCOVERY_SERVER_PORT:8060}
+          uri: ${DISCOVERY_SERVER_URL:http://localhost:8761}
           predicates:
             - Path=/eureka
           filters :
             - SetPath=/
         ## Discovery Service Static Resources Route
         - id : DISCOVERY-SERVER-STATIC
-          uri : http://${DISCOVERY_SERVER_HOST:localhost}:${DISCOVERY_SERVER_PORT:8060}
+          uri : ${DISCOVERY_SERVER_URL:http://localhost:8761}
           predicates :
             - Path=/eureka/**
 
@@ -112,34 +124,9 @@ spring:
             allowedOrigins: "*"
             allowedMethods: "*"
             allowedHeaders: "*"
-#  security:
-#    oauth2:
-#      resourceserver:
-#        jwt:
-#          issuer-uri: http://localhost:8080/realms/insa
-#          jwk-set-uri: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}/protocol/openid-connect/certs
 
 logging:
   level:
     root : info
     org.springframework.cloud.gateway.route.RouteDefinitionLocator: info
     org.springframework.cloud.gateway : trace
-
-eureka:
-  instance:
-    prefer-ip-address: true
-  client:
-    fetch-registry: true
-    register-with-eureka: true
-    serviceUrl:
-      defaultZone: http://${DISCOVERY_SERVER_HOST:localhost}:${DISCOVERY_SERVER_PORT:8060}/eureka/
-
-#related to Spring Boot's actuator and management endpoints
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always

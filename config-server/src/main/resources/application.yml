@@ -1,0 +1,37 @@
+server:
+  port: 8282
+
+spring:
+  application:
+    name: CONFIG-SERVER
+
+  output:
+    ansi:
+      enabled: always
+
+  cloud:
+    config:
+      server:
+        git:
+          username: ${GITHUB_USERNAME}
+          password: ${GITHUB_PASSWORD}
+          uri: ${GITHUB_URI}
+          clone-on-start: true
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    serviceUrl:
+      defaultZone: ${DISCOVERY_SERVER_URL:http://localhost:8761}/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

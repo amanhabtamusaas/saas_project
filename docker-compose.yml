@@ -1,17 +1,19 @@
-version: '3.8'
+version: '2.28.1'
 
 services:
   # MySQL Database
-  mysql-db:
+  mysql:
     image: mysql:latest
-    container_name: mysql-db
+    container_name: mysql
     environment:
       MYSQL_ROOT_PASSWORD: mysql
-      MYSQL_DATABASE: tenant_db
+      MYSQL_DATABASE: auth_db
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - ./init-multiple-databases.sql:/docker-entrypoint-initdb.d/init-multiple-databases.sql
+      - mysql-data:/var/lib/mysql
+    restart: unless-stopped
     networks:
       - hrms-network
 
@@ -20,262 +22,246 @@ services:
     image: quay.io/keycloak/keycloak:25.0.1
     container_name: keycloak
     ports:
-      - "8282:8282"
+      - "8281:8080"
+    hostname: keycloak
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-      DATABASE_VENDOR: mysql
-      DATABASE_USERNAME: root
-      DATABASE_PASSWORD: mysql
-      DATABASE_HOST: mysql-db
-      DATABASE_NAME: keycloak_db
-      PORT: 8282
-      PROXY_ADDRESS_FORWARDING: "true"
-    volumes:
-      - ./keycloak-25.0.1/conf/keycloak.conf:/opt/keycloak/conf/keycloak.conf
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://mysql:3306/auth_db
+      KC_DB_USERNAME: root
+      KC_DB_PASSWORD: mysql
     depends_on:
-      - mysql-db
-    command: start-dev
+      - mysql
     networks:
       - hrms-network
+    restart: unless-stopped
+    command:
+      - start-dev
 
   # Discovery Server
   discovery-server:
     build:
-      context: ./discovery-server
+      context: discovery-server
       dockerfile: Dockerfile
     image: discovery-server:latest
     container_name: discovery-server
     ports:
-      - "8060:8060"
+      - "8761:8761"
     environment:
-      - PORT=8060
-      - HOSTNAME=discovery-server
+      - DISCOVERY_SERVER_URL=http://discovery-server:8761
+    restart: unless-stopped
     networks:
       - hrms-network
-    volumes:
-      - ./discovery-server/target/discovery-server.jar:/app/discovery-server.jar
+
+  # Config Server
+  config-server:
+    build:
+      context: config-server
+      dockerfile: Dockerfile
+    image: config-server:latest
+    container_name: config-server
+    ports:
+      - "8282:8282"
+    environment:
+      - DISCOVERY_SERVER_URL=http://discovery-server:8761
+      - GITHUB_USERNAME=codingalx
+      - GITHUB_PASSWORD=
+      - GITHUB_URI=https://github.com/codingalx/config-server
+    depends_on:
+      - discovery-server
+    restart: unless-stopped
+    networks:
+      - hrms-network
 
   # API Gateway
   api-gateway:
     build:
-      context: ./api-gateway
+      context: api-gateway
       dockerfile: Dockerfile
     image: api-gateway:latest
     container_name: api-gateway
     ports:
       - "8000:8000"
     environment:
-      - PORT=8000
-      - DISCOVERY_SERVER_HOST=discovery-server
-      - DISCOVERY_SERVER_PORT=8060
+      - DISCOVERY_SERVER_URL=http://discovery-server:8761
+      - CONFIG_SERVER_URL=http://config-server:8282
     depends_on:
       - discovery-server
+      - config-server
+    restart: unless-stopped
     networks:
       - hrms-network
-    volumes:
-      - ./api-gateway/target/api-gateway.jar:/app/api-gateway.jar
 
-  # Tenant Service
-  tenant-service:
+  # Organization Service
+  organization-service:
     build:
-      context: ./tenant-service
+      context: organization-service
       dockerfile: Dockerfile
-    image: tenant-service:latest
-    container_name: tenant-service
+    image: organization-service:latest
+    container_name: organization-service
     ports:
       - "8181:8181"
     environment:
-      - PORT=8181
-      - DATABASE_HOST=mysql-db
-      - DATABASE_PORT=3306
-      - DATABASE_NAME=tenant_db
       - DATABASE_USERNAME=root
       - DATABASE_PASSWORD=mysql
-      - DISCOVERY_SERVER_HOST=discovery-server
-      - DISCOVERY_SERVER_PORT=8060
+      - DATABASE_URL=jdbc:mysql://mysql:3306/organization_db
+      - CONFIG_SERVER_URL=http://config-server:8282
     depends_on:
       - discovery-server
-      - mysql-db
+      - mysql
+      - keycloak
+      - config-server
+    restart: unless-stopped
     networks:
       - hrms-network
-    volumes:
-      - ./tenant-service/target/tenant-service.jar:/app/tenant-service.jar
 
   # Employee Service
   employee-service:
     build:
-      context: ./employee-service
+      context: employee-service
       dockerfile: Dockerfile
     image: employee-service:latest
     container_name: employee-service
     ports:
       - "8180:8180"
     environment:
-      - PORT=8180
-      - DATABASE_HOST=mysql-db
-      - DATABASE_PORT=3306
-      - DATABASE_NAME=employee_db
       - DATABASE_USERNAME=root
       - DATABASE_PASSWORD=mysql
-      - DISCOVERY_SERVER_HOST=discovery-server
-      - DISCOVERY_SERVER_PORT=8060
-      - TENANT_SERVICE_BASE_URL=http://tenant-service:8181
+      - DATABASE_URL=jdbc:mysql://mysql:3306/employee_db
+      - CONFIG_SERVER_URL=http://config-server:8282
     depends_on:
       - discovery-server
-      - mysql-db
+      - mysql
+      - keycloak
+      - organization-service
+      - config-server
+    restart: unless-stopped
     networks:
       - hrms-network
-    volumes:
-      - ./employee-service/target/employee-service.jar:/app/employee-service.jar
 
   # Leave Service
   leave-service:
     build:
-      context: ./leave-service
+      context: leave-service
       dockerfile: Dockerfile
     image: leave-service:latest
     container_name: leave-service
     ports:
       - "8184:8184"
     environment:
-      - PORT=8184
-      - DATABASE_HOST=mysql-db
-      - DATABASE_PORT=3306
-      - DATABASE_NAME=leave_db
       - DATABASE_USERNAME=root
       - DATABASE_PASSWORD=mysql
-      - DISCOVERY_SERVER_HOST=discovery-server
-      - DISCOVERY_SERVER_PORT=8060
-      - TENANT_SERVICE_BASE_URL=http://tenant-service:8181
-      - EMPLOYEE_SERVICE_BASE_URL=http://employee-service:8180
+      - DATABASE_URL=jdbc:mysql://mysql:3306/leave_db
+      - CONFIG_SERVER_URL=http://config-server:8282
     depends_on:
       - discovery-server
-      - mysql-db
+      - mysql
+      - keycloak
+      - organization-service
+      - config-server
+    restart: unless-stopped
     networks:
       - hrms-network
-    volumes:
-      - ./leave-service/target/leave-service.jar:/app/leave-service.jar
 
   # Recruitment Service
   recruitment-service:
     build:
-      context: ./recruitment-service
+      context: recruitment-service
       dockerfile: Dockerfile
     image: recruitment-service:latest
     container_name: recruitment-service
     ports:
       - "8182:8182"
     environment:
-      - PORT=8182
-      - DATABASE_HOST=mysql-db
-      - DATABASE_PORT=3306
-      - DATABASE_NAME=recruitment_db
       - DATABASE_USERNAME=root
       - DATABASE_PASSWORD=mysql
-      - DISCOVERY_SERVER_HOST=discovery-server
-      - DISCOVERY_SERVER_PORT=8060
-      - TENANT_SERVICE_BASE_URL=http://tenant-service:8181
-      - EMPLOYEE_SERVICE_BASE_URL=http://employee-service:8180
+      - DATABASE_URL=jdbc:mysql://mysql:3306/recruitment_db
+      - CONFIG_SERVER_URL=http://config-server:8282
     depends_on:
       - discovery-server
-      - tenant-service
-      - mysql-db
+      - mysql
+      - keycloak
+      - organization-service
+      - config-server
+    restart: unless-stopped
     networks:
       - hrms-network
-    volumes:
-      - ./recruitment-service/target/recruitment-service.jar:/app/recruitment-service.jar
 
   # Training Service
   training-service:
     build:
-      context: ./training-service
+      context: training-service
       dockerfile: Dockerfile
     image: training-service:latest
     container_name: training-service
     ports:
       - "8183:8183"
     environment:
-      - PORT=8183
-      - DATABASE_HOST=mysql-db
-      - DATABASE_PORT=3306
-      - DATABASE_NAME=training_db
       - DATABASE_USERNAME=root
       - DATABASE_PASSWORD=mysql
-      - DISCOVERY_SERVER_HOST=discovery-server
-      - DISCOVERY_SERVER_PORT=8060
-      - TENANT_SERVICE_BASE_URL=http://tenant-service:8181
-      - EMPLOYEE_SERVICE_BASE_URL=http://employee-service:8180
-      - LEAVE_SERVICE_BASE_URL=http://leave-service:8184
+      - DATABASE_URL=jdbc:mysql://mysql:3306/training_db
+      - CONFIG_SERVER_URL=http://config-server:8282
     depends_on:
       - discovery-server
-      - tenant-service
-      - mysql-db
+      - mysql
+      - keycloak
+      - organization-service
+      - config-server
+    restart: unless-stopped
     networks:
       - hrms-network
-    volumes:
-      - ./training-service/target/training-service.jar:/app/training-service.jar
 
   # HR Planning Service
   hr_planning-service:
     build:
-      context: ./hr_planning-service
+      context: hr_planning-service
       dockerfile: Dockerfile
     image: hr_planning-service:latest
     container_name: hr_planning-service
     ports:
       - "8186:8186"
     environment:
-      - PORT=8186
-      - DATABASE_HOST=mysql-db
-      - DATABASE_PORT=3306
-      - DATABASE_NAME=hr-planning_db
       - DATABASE_USERNAME=root
       - DATABASE_PASSWORD=mysql
-      - DISCOVERY_SERVER_HOST=discovery-server
-      - DISCOVERY_SERVER_PORT=8060
-      - TENANT_SERVICE_BASE_URL=http://tenant-service:8181
-      - LEAVE_SERVICE_BASE_URL=http://leave-service:8184
+      - DATABASE_URL=jdbc:mysql://mysql:3306/hr_planning_db
+      - CONFIG_SERVER_URL=http://config-server:8282
     depends_on:
       - discovery-server
-      - tenant-service
-      - mysql-db
+      - mysql
+      - keycloak
+      - organization-service
+      - config-server
+    restart: unless-stopped
     networks:
       - hrms-network
-    volumes:
-      - ./hr_planning-service/target/hr_planning-service.jar:/app/hr_planning-service.jar
 
   # Auth Service
   auth-service:
     build:
-      context: ./auth-service
+      context: auth-service
       dockerfile: Dockerfile
     image: auth-service:latest
     container_name: auth-service
     ports:
       - "8185:8185"
     environment:
-      - PORT=8185
-      - DATABASE_HOST=mysql-db
-      - DATABASE_PORT=3306
-      - DATABASE_NAME=auth_db
       - DATABASE_USERNAME=root
       - DATABASE_PASSWORD=mysql
-      - DISCOVERY_SERVER_HOST=discovery-server
-      - DISCOVERY_SERVER_PORT=8060
-      - KEYCLOAK_HOST=keycloak
-      - KEYCLOAK_PORT=8282
-      - TENANT_SERVICE_BASE_URL=http://tenant-service:8181
+      - DATABASE_URL=jdbc:mysql://mysql:3306/auth_db
+      - CONFIG_SERVER_URL=http://config-server:8282
     depends_on:
       - discovery-server
-      - mysql-db
       - keycloak
-      - tenant-service
+      - config-server
+    restart: unless-stopped
     networks:
       - hrms-network
-    volumes:
-      - ./auth-service/target/auth-service.jar:/app/auth-service.jar
 
 networks:
   hrms-network:
     driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local

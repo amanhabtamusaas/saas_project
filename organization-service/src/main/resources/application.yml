@@ -1,0 +1,36 @@
+server :
+  port : 8181
+
+spring :
+  application :
+    name : ORGANIZATION-SERVICE
+
+  config:
+    import: configserver:${CONFIG_SERVER_URL:http://localhost:8282}
+
+  jpa :
+    hibernate :
+      ddl-auto : update
+    show-sql : true
+    properties :
+      hibernate :
+        format_sql : true
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/organization_db}?createDatabaseIfNotExist=true
+    username: ${DATABASE_USERNAME:root}
+    password: ${DATABASE_PASSWORD:mysql}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  servlet :
+    multipart :
+      enabled : true
+      file-size-threshold : 2KB
+      max-file-size : 200MB
+      max-request-size : 215MB
+
+springdoc:
+  swagger-ui:
+    oauth:
+      client-id: ${keycloak.client-id}
+      client-secret: ${keycloak.client-secret}

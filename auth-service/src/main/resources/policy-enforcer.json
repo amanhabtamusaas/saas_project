@@ -1,9 +1,9 @@
 {
-  "realm": "insa-realm",
+  "realm": "saas-realm",
   "auth-server-url": "http://localhost:8080",
-  "resource": "saas-hrms-client",
+  "resource": "saas-client",
   "credentials": {
-    "secret": "M6Fc3ogo5m9NUOzbwvHffotonOCxPa7l"
+    "secret": "7FsOMKTT2Q8uKb6FkulJHSwQfAAEKhoT"
   },
   "paths": [
     {
@@ -12,6 +12,10 @@
     },
     {
       "path": "/v3/api-docs/*",
+      "enforcement-mode": "DISABLED"
+    },
+    {
+      "path": "/actuator/*",
       "enforcement-mode": "DISABLED"
     }
   ]
